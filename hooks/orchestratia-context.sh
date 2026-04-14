@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # ──────────────────────────────────────────────────────────────────────
-# Orchestratia Claude Code SessionStart Hook
+# Orchestratia SessionStart Hook (Agent-Agnostic)
 #
-# This script runs automatically when Claude Code starts a session.
-# Its stdout is injected into Claude's conversation context.
+# Works with Claude Code, Gemini CLI, and Codex CLI.
+# Runs automatically when an AI coding agent starts a session.
+# Its stdout is injected into the agent's conversation context.
 #
 # Requirements:
 #   - ORCHESTRATIA_HUB_URL env var (set by agent daemon in tmux sessions)
