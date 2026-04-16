@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Orchestratia PreToolUse hook — checks approval rules and logs permission requests.
-# Works with Claude Code, Gemini CLI (BeforeTool), and Codex CLI (PreToolUse).
-# Runs before AI agent tool execution. Must be fast (<50ms).
+# Runs before every Claude Code tool execution. Must be fast (<50ms).
 #
 # Input: JSON on stdin with tool_name, tool_input, session_id
 # Output: JSON on stdout with permissionDecision (allow/deny/ask)
@@ -41,23 +40,32 @@ if not tool_name:
 session_id = os.environ.get('ORCHESTRATIA_SESSION_ID', '')
 project_id = os.environ.get('ORCHESTRATIA_PROJECT_ID', '')
 
+# Detect which AI agent is running
+agent_name = os.environ.get('ORCHESTRATIA_AGENT_NAME', '')
+if not agent_name:
+    claude_tools = {'Edit','Write','Read','Glob','Grep','WebFetch','Agent','Skill','MultiEdit','NotebookEdit','ToolSearch','EnterPlanMode','ExitPlanMode','TaskCreate','TaskUpdate','TaskList','TaskGet','TaskOutput','AskUserQuestion'}
+    gemini_tools = {'run_shell_command','write_file','read_file','grep_search','glob_search','web_fetch','replace','create_file','activate_skill'}
+    if tool_name in claude_tools:
+        agent_name = 'claude'
+    elif tool_name in gemini_tools:
+        agent_name = 'gemini'
+    elif tool_name == 'shell' or os.environ.get('CODEX_SANDBOX_DIR'):
+        agent_name = 'codex'
+    else:
+        agent_name = 'claude'
+
 # Determine the parameter to match against
 # Supports Claude Code, Gemini CLI, and Codex CLI tool names
 param = ''
-# Shell commands (Claude: Bash, Gemini: run_shell_command, Codex: Bash)
 if tool_name in ('Bash', 'run_shell_command', 'shell'):
     param = tool_input.get('command', '')
-# File operations (Claude: Edit/Write/Read, Gemini: write_file/read_file/replace, Codex: similar)
 elif tool_name in ('Edit', 'Write', 'Read', 'MultiEdit', 'write_file', 'read_file', 'replace', 'create_file'):
     param = tool_input.get('file_path', '') or tool_input.get('path', '')
-# Web fetch (Claude: WebFetch, Gemini: web_fetch)
 elif tool_name in ('WebFetch', 'web_fetch'):
     param = tool_input.get('url', '')
-# Search (Claude: Glob/Grep, Gemini: grep_search/glob)
 elif tool_name in ('Glob', 'Grep', 'grep_search', 'glob_search'):
-    param = tool_input.get('pattern', '') or tool_input.get('query', '')
-# Agent/subagent delegation
-elif tool_name in ('Agent', 'delegate'):
+    param = tool_input.get('pattern', '')
+elif tool_name == 'Agent':
     param = tool_input.get('prompt', '')[:200] if tool_input.get('prompt') else ''
 
 # Load cached rules
@@ -98,6 +106,12 @@ for rule in rules:
         continue
     # server scope is already filtered by the hub when caching rules
 
+    # Agent filter check
+    agent_f = rule.get('agent_filter', 'all')
+    if agent_f != 'all' and agent_name:
+        if agent_name not in [a.strip() for a in agent_f.split(',')]:
+            continue
+
     # Match found
     action = rule.get('action', 'allow')
     decision = 'allow' if action == 'allow' else 'deny'
@@ -116,6 +130,7 @@ log_entry = {
     'decision': 'allowed' if decision == 'allow' else ('denied' if decision == 'deny' else 'asked'),
     'matched_rule_id': matched_rule_id,
     'reason': reason,
+    'agent_name': agent_name or None,
     'created_at': time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime()),
 }
 try:
