@@ -195,6 +195,15 @@ The task transitions to "plan_review". Once the orchestrator approves, the task 
 
 Before completing a task, you can check the codebase health and review your own changes. This helps catch issues before they're flagged by the automated review system.
 
+### Run a codebase scan
+
+```bash
+orchestratia code scan
+orchestratia code scan /path/to/repo
+```
+
+Scans the codebase (defaults to current directory), calculates health score, tech debt, and hotspots, then submits results to the hub. This updates the data that `health`, `debt`, and `priorities` commands read from. Run this before checking health if you want fresh results.
+
 ### Check codebase health
 
 ```bash
@@ -268,6 +277,7 @@ All commands support `--json` for machine-readable output. Task IDs accept short
 | `orchestratia server list` | List all registered servers |
 | `orchestratia session list` | List active sessions in project |
 | `orchestratia pipeline create --file <path>` | Create multi-task pipeline |
+| `orchestratia code scan [path]` | Run codebase scan and submit to hub |
 | `orchestratia code health` | Show codebase health score, factors, hotspots |
 | `orchestratia code debt` | Show tech debt summary with top files |
 | `orchestratia code priorities` | Top 5 files to fix for maximum impact |
