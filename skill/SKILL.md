@@ -191,7 +191,53 @@ orchestratia task plan <task-id> --plan '{
 
 The task transitions to "plan_review". Once the orchestrator approves, the task moves to "running" and you can proceed with implementation.
 
-## 6. CLI Command Reference
+## 6. Code Quality Self-Vetting (CodeLens)
+
+Before completing a task, you can check the codebase health and review your own changes. This helps catch issues before they're flagged by the automated review system.
+
+### Check codebase health
+
+```bash
+orchestratia code health
+```
+
+Shows health score (0-100), grade (A+ to F), factor breakdown (complexity, dependencies, churn, structure), hotspots, and tech debt.
+
+### Check tech debt
+
+```bash
+orchestratia code debt
+```
+
+Shows total tech debt in hours and the top files contributing to it, with specific reasons (e.g., "reduce high complexity (3h)", "split large file (2h)").
+
+### See top priorities
+
+```bash
+orchestratia code priorities
+```
+
+Shows the top 5 files to fix for maximum codebase health improvement, ranked by debt hours.
+
+### Check review findings after task completion
+
+```bash
+orchestratia code review <task-id>
+```
+
+If your task completion triggered a code review, this shows the findings: score, errors, warnings, and what to fix. Use this after completing a task to see if the review passed.
+
+### Automated review loop
+
+When a project has code review mode set to "always", the system automatically:
+1. Reviews your task completion (zero-cost structural checks)
+2. If the review fails, sends findings back to your session
+3. You fix the issues and re-complete the task
+4. Loop continues until pass or max retries (then escalates to human)
+
+You can proactively avoid this by running `orchestratia code health` before completing.
+
+## 7. CLI Command Reference
 
 All commands support `--json` for machine-readable output. Task IDs accept short prefixes (minimum 4 chars).
 
@@ -222,9 +268,13 @@ All commands support `--json` for machine-readable output. Task IDs accept short
 | `orchestratia server list` | List all registered servers |
 | `orchestratia session list` | List active sessions in project |
 | `orchestratia pipeline create --file <path>` | Create multi-task pipeline |
+| `orchestratia code health` | Show codebase health score, factors, hotspots |
+| `orchestratia code debt` | Show tech debt summary with top files |
+| `orchestratia code priorities` | Top 5 files to fix for maximum impact |
+| `orchestratia code review <task-id>` | Check code review findings for a task |
 | `orchestratia init` | Generate ORCHESTRATIA.md for a repo |
 
-## 7. Result Schema Reference
+## 8. Result Schema Reference
 
 The structured result format (`orchestratia/task-result/v1`) enables contract exchange between tasks:
 
@@ -252,7 +302,7 @@ The structured result format (`orchestratia/task-result/v1`) enables contract ex
 }
 ```
 
-## 8. Dependency Types
+## 9. Dependency Types
 
 | Type | Purpose | Auto-resolves |
 |------|---------|---------------|
@@ -260,7 +310,7 @@ The structured result format (`orchestratia/task-result/v1`) enables contract ex
 | `input` | Contract exchange — downstream receives upstream's contract output via `resolved_inputs` | Yes |
 | `related` | Informational — no blocking, just a reference link | No |
 
-## 9. Common Contract Types
+## 10. Common Contract Types
 
 | Contract Type | Description | Typical Data |
 |---------------|-------------|--------------|
@@ -273,7 +323,7 @@ The structured result format (`orchestratia/task-result/v1`) enables contract ex
 | `deploy_status` | Deployment information | URLs, versions, health status |
 | `ui_components` | Frontend component exports | Component names, props, paths |
 
-## 10. Task Notes
+## 11. Task Notes
 
 Post notes to keep the orchestrator and other agents informed:
 
@@ -290,7 +340,7 @@ To read existing notes:
 orchestratia task notes <task-id>
 ```
 
-## 11. Orchestrator: Responding to Interventions
+## 12. Orchestrator: Responding to Interventions
 
 Orchestrator agents can respond to worker questions programmatically:
 
@@ -304,7 +354,7 @@ orchestratia intervention respond <intervention-id> --response "Use JWT with RS2
 
 Workers must use `--type question` when asking (via `task help`) for the orchestrator to respond. With `--type help` (default), only human admins can respond.
 
-## 12. WebSocket Task Subscriptions
+## 13. WebSocket Task Subscriptions
 
 Subscribe to real-time task events instead of polling:
 
@@ -314,7 +364,7 @@ orchestratia task subscribe <task-id>
 
 After subscribing, your session receives push notifications for all events on that task (status changes, notes, interventions, completions).
 
-## 13. Cross-Session Commands
+## 14. Cross-Session Commands
 
 Execute commands on other sessions in your project:
 
@@ -334,7 +384,7 @@ orchestratia remote exec <session-name> "npm run build" --timeout 120
 
 All remote commands support `--json` for machine-readable output.
 
-## 14. File Transfer Between Agents
+## 15. File Transfer Between Agents
 
 Send files to other sessions in your project via hub relay (chunked, SHA-256 verified):
 
@@ -356,7 +406,7 @@ Requirements:
 - Both servers must be owned by the **same user**
 - Receiver must have an active session
 
-## 15. SSH Access to Other Servers
+## 16. SSH Access to Other Servers
 
 When an admin creates an SSH access grant for your server, you automatically get SSH access to another server in the same project. The agent daemon handles everything — key storage and a local TCP tunnel that relays through the Orchestratia hub.
 
@@ -447,7 +497,7 @@ sudo systemctl restart nginx    # works with elevated grants
 - Grants can expire or be revoked by the admin at any time
 - When a grant is revoked, the key and tunnel are automatically cleaned up
 
-## 16. Documentation
+## 17. Documentation
 
 Full documentation available at:
 
