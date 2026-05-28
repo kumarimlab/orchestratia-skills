@@ -176,6 +176,29 @@ Pipeline JSON format:
 }
 ```
 
+### Worker-readiness (provisioning a server)
+
+For a server to run a given agent CLI as a worker (including when the
+orchestrator calls `spawn_worker`), that CLI must be **installed and
+authenticated** on the server. This is a once-per-server human step — the
+orchestrator cannot do it for you, because it happens before any agent's MCP
+connection exists:
+
+1. **Install** the CLI (`claude`, `gemini`, `codex`, `aider`) on the server.
+2. **Authenticate** it (log in / set the API key) as the user the daemon runs as.
+3. On first run in a repo the CLI may ask to **trust the folder** — accept it once.
+
+The daemon probes each agent type and reports readiness on its heartbeat
+(`servers.worker_ready`, surfaced per-agent in the dashboard). If a CLI isn't
+installed, the hub refuses to start that agent type with an actionable error
+instead of launching a worker that would just hang.
+
+**Installed the CLI later?** No daemon restart needed — the daemon re-probes
+every ~10 minutes and picks it up automatically. To apply immediately, send the
+daemon `SIGHUP` (e.g. `sudo systemctl kill -s HUP orchestratia-agent`, or
+`kill -HUP <pid>`). Detection only confirms the binary is on `PATH`; logging in
+and trusting the working directory remain your once-per-server steps.
+
 ## 5. Plan Mode
 
 When a task is assigned with `--require-plan`, the task enters "planning" state. You must submit a plan before executing:
